@@ -194,53 +194,82 @@ def cadastrar():
             'data_cadastro': datetime.now().strftime('%d/%m/%Y %H:%M:%S')
         }
         
+        # Validar se todos os campos obrigatórios foram preenchidos
+        campos_obrigatorios = ['tipo_documento', 'documento', 'nome_vegetal', 'data_plantio', 
+                             'tipo_solo', 'frequencia_rega', 'exposicao_sol', 'tempo_colheita']
+        
+        for campo in campos_obrigatorios:
+            if not dados[campo]:
+                print(f"Campo obrigatório não preenchido: {campo}")
+                return jsonify({
+                    'success': False,
+                    'error': f'O campo {campo} é obrigatório'
+                })
+        
         print("Dados coletados:", dados)
         
         # Gera o código único
-        dados['codigo_unico'] = gerar_codigo_unico(dados['documento'])
-        
-        print("Código único gerado:", dados['codigo_unico'])
+        try:
+            dados['codigo_unico'] = gerar_codigo_unico(dados['documento'])
+            print("Código único gerado:", dados['codigo_unico'])
+        except Exception as e:
+            print("Erro ao gerar código único:", str(e))
+            return jsonify({
+                'success': False,
+                'error': 'Erro ao gerar código único'
+            })
         
         # Gera o QR Code
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=10,
-            border=4,
-        )
-        # Construir a URL com todos os parâmetros
-        params = {
-            'tipo_documento': dados['tipo_documento'],
-            'documento': dados['documento'],
-            'nome_vegetal': dados['nome_vegetal'],
-            'data_plantio': dados['data_plantio'],
-            'tipo_solo': dados['tipo_solo'],
-            'frequencia_rega': dados['frequencia_rega'],
-            'exposicao_sol': dados['exposicao_sol'],
-            'tempo_colheita': dados['tempo_colheita'],
-            'observacoes': dados['observacoes']
-        }
-        from urllib.parse import urlencode
-        url = f"https://cadastroqrcodetuxtu.onrender.com/plantio/{dados['codigo_unico']}?{urlencode(params)}"
-        print("URL gerada:", url)
-        qr.add_data(url)
-        qr.make(fit=True)
-
-        img = qr.make_image(fill_color="black", back_color="white")
-        
-        # Converte a imagem para base64
-        buffered = BytesIO()
-        img.save(buffered)
-        img_str = base64.b64encode(buffered.getvalue()).decode()
-        
-        print("QR Code gerado com sucesso")
-        
-        return jsonify({
-            'success': True,
-            'qr_code': img_str,
-            'info': dados
-        })
-        
+        try:
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            
+            # Construir a URL com todos os parâmetros
+            params = {
+                'tipo_documento': dados['tipo_documento'],
+                'documento': dados['documento'],
+                'nome_vegetal': dados['nome_vegetal'],
+                'data_plantio': dados['data_plantio'],
+                'tipo_solo': dados['tipo_solo'],
+                'frequencia_rega': dados['frequencia_rega'],
+                'exposicao_sol': dados['exposicao_sol'],
+                'tempo_colheita': dados['tempo_colheita'],
+                'observacoes': dados['observacoes']
+            }
+            
+            from urllib.parse import urlencode
+            url = f"https://cadastroqrcodetuxtu.onrender.com/plantio/{dados['codigo_unico']}?{urlencode(params)}"
+            print("URL gerada:", url)
+            
+            qr.add_data(url)
+            qr.make(fit=True)
+            
+            img = qr.make_image(fill_color="black", back_color="white")
+            
+            # Converte a imagem para base64
+            buffered = BytesIO()
+            img.save(buffered)
+            img_str = base64.b64encode(buffered.getvalue()).decode()
+            
+            print("QR Code gerado com sucesso")
+            
+            return jsonify({
+                'success': True,
+                'qr_code': img_str,
+                'info': dados
+            })
+            
+        except Exception as e:
+            print("Erro ao gerar QR code:", str(e))
+            return jsonify({
+                'success': False,
+                'error': 'Erro ao gerar QR code'
+            })
+            
     except Exception as e:
         print("Erro durante o cadastro:", str(e))
         return jsonify({
