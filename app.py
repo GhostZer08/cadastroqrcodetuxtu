@@ -221,7 +221,7 @@ def cadastrar():
             'observacoes': dados['observacoes']
         }
         from urllib.parse import urlencode
-        url = f"http://192.168.0.132:5000/plantio/{dados['codigo_unico']}?{urlencode(params)}"
+        url = f"https://cadastroqrcodetuxtu.onrender.com/plantio/{dados['codigo_unico']}?{urlencode(params)}"
         print("URL gerada:", url)
         qr.add_data(url)
         qr.make(fit=True)
@@ -286,5 +286,16 @@ def gerar_pdf():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.errorhandler(500)
+def internal_error(error):
+    app.logger.error(f'Server Error: {error}')
+    return render_template('error.html', error=error), 500
+
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('error.html', error=error), 404
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True)
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
